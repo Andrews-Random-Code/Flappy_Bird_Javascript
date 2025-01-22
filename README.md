@@ -6,6 +6,7 @@ A rough clone of the original mobile game. Keep the bird in the air and pass thr
 
 ## Controls:
 Space jumps/flaps
+
 Clicking on the retry button resets the game durng a Game Over
 
 ## Work in Progress:
