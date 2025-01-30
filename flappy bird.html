@@ -114,12 +114,14 @@
 			dy: 0,
 			gravity: 0.5,
 			terminalVelocity: 20,
+			//aesthetics
+			wingX: this.x - length/10,
+			wingY: this.y,
+			wingRadius: 20,
+			wingDipMax: 40,
 		};
 	
 		function moveBird(){
-			if(!gameOn){
-				return;
-			}
 			if(keys[flapButton]){
 				if(bird.flapHeld == false && gameOn){
 					bird.flapHeight = 1;
@@ -162,6 +164,15 @@
 			context.strokeStyle = "orange";
 			context.stroke(birdShape);
 			context.restore();
+
+			/*
+			//Wing
+			const rad = bird.orientation * Math.PI/180;
+			let wingX, wingY, wingLeft, wingRight, wingTop, wingBottom;
+			let loopList = [wingX, wingY, wingLeft, wingRight, wingTop, wingBottom];
+			wingX = bird.x + Math.cos(rad) * (bird.wingX - bird.x) - Math.sin(rad) * (bird.wingY - bird.y);
+			wingY = bird.y + Math.sin(rad) * (bird.wingX - bird.x) + Math.cos(rad) * (bird.wingY - bird.y);
+			*/
 		}
 
 		function birdPath(){
@@ -505,13 +516,13 @@
 			const verticalShift = canvas.height - (canvas.height/3);
 
 			if(gameTime == 0){
-				for(i = 0; i < canvas.width + 20; i += 40){
+				for(i = 0; i < canvas.width + 20; i += 30){
 					const y = amp * Math.sin(period * -i) + verticalShift; //-i preserves sin wave
 					const x = canvas.width + 20 - i;
 					const cloud = new cloudSpecs(x, y);
 					cloudList.push(cloud);
 				}
-			} else if(gameTime % 40 == 0){				
+			} else if(gameTime % 30 == 0){				
 				const y = amp * Math.sin(period * gameTime) + verticalShift
 				const x = canvas.width + 20;
 				const cloud = new cloudSpecs(x, y);
@@ -552,11 +563,14 @@
 			this.x = x;
 			this.y = y;
 			this.dx = -1;
-			this.radius = Math.floor(Math.random() * 100) + 60;
-			this.bezierCurveHeight = Math.floor(Math.random() * 90) + 50;
-			this.shrubHeight = Math.floor(Math.random() * 30) + 10;
+			this.radius = Math.floor(Math.random() * 50) + 20;
+			this.bezierCurveHeight = Math.floor(Math.random() * 60) + 30;
+			this.shrubHeight = Math.floor(Math.random() * 15) + 5;
 			this.strokeColor = "#6B921D";
 			this.fillColor = "#87B727";
+			this.strokePath = treePath(this.x, this.y, this.radius, this.bezierCurveHeight, this.shrubHeight);
+			this.fillPath = new Path2D();
+				this.fillPath.roundRect(-this.radius - 10, this.y - 20, this.radius*2 + 20, canvas.height, 20);
 			this.visible = true;
 		}
 				
@@ -567,10 +581,10 @@
 			
 			const xLoc = canvas.width + 50;
 			const lowestHeight = canvas.height - canvas.height/13;
-			const maxDeviation = 30;		
+			const maxDeviation = 50;		
 
 			if(gameTime == 0){
-				for(i = 0; i < xLoc; i += 100){
+				for(i = 0; i < xLoc; i += 45){
 					const deviation = Math.floor(Math.random() * maxDeviation) + 1;
 					const y = lowestHeight + deviation;
 					const x = xLoc - i;
@@ -578,7 +592,7 @@
 					const randIndex = Math.floor(Math.random() * treeList.length) + 0;
 					treeList.splice(randIndex, 0, tree); //randomly places tree for layered effect;
 				}
-			} else if(gameTime % 100 == 0){				
+			} else if(gameTime % 45 == 0){				
 				const deviation = Math.floor(Math.random() * maxDeviation) + 1;
 				const y = lowestHeight + deviation;
 				const x = xLoc;
@@ -589,6 +603,8 @@
 			treeList.forEach(tree => {
 				if(tree.x < 0 - tree.radius){
 					tree.visible = false;
+					console.log(tree.x);
+					console.log("treeList length   " + treeList.length);
 				}
 			});
 			treeList = treeList.filter(tree => tree.visible);
@@ -603,52 +619,54 @@
 			});
 		}
 		
-		function drawTree(){
-			context.save();
-			treeList.forEach(tree => {
-				let treePath = new Path2D();
-				const TP0 = [tree.x - tree.radius, tree.y];
-				const TP1 = [tree.x - tree.radius, tree.y - tree.bezierCurveHeight];
-				const TP2 = [tree.x + tree.radius, tree.y - tree.bezierCurveHeight];
-				const TP3 = [tree.x + tree.radius, tree.y];
+		function treePath(x, y, radius, bezierCurveHeight, shrubHeight){
+			let path = new Path2D();
+			const TP0 = [0 - radius, y];
+			const TP1 = [0 - radius, y - bezierCurveHeight];
+			const TP2 = [0 + radius, y - bezierCurveHeight];
+			const TP3 = [0 + radius, y];
 
-				for(let t = 0.167; t <= 1; t += 0.167){ // 1/6ths ish
-					const SP0 = [bezierCoordinateFinder(TP0[0], TP1[0], TP2[0], TP3[0], t - 0.0835),
-						     bezierCoordinateFinder(TP0[1], TP1[1], TP2[1], TP3[1], t - 0.0835)];
-					const SP3 = [bezierCoordinateFinder(TP0[0], TP1[0], TP2[0], TP3[0], t + 0.0835),
-						     bezierCoordinateFinder(TP0[1], TP1[1], TP2[1], TP3[1], t + 0.0835)];
+			for(let t = 0.167; t <= 1; t += 0.167){ // 1/6ths ish
+				const SP0 = [bezierCoordinateFinder(TP0[0], TP1[0], TP2[0], TP3[0], t - 0.0835),
+					     bezierCoordinateFinder(TP0[1], TP1[1], TP2[1], TP3[1], t - 0.0835)];
+				const SP3 = [bezierCoordinateFinder(TP0[0], TP1[0], TP2[0], TP3[0], t + 0.0835),
+					     bezierCoordinateFinder(TP0[1], TP1[1], TP2[1], TP3[1], t + 0.0835)];
 
-					//Shrub height adjusted for bezier curve angle
-					const offsetAngle1 = Math.atan2((SP3[1] - SP0[1]), (SP3[0] - SP0[0]));
-					const offsetAngle2 = Math.PI/2 - offsetAngle1;
+				//Shrub height adjusted for bezier curve angle
+				const offsetAngle1 = Math.atan2((SP3[1] - SP0[1]), (SP3[0] - SP0[0]));
+				const offsetAngle2 = Math.PI/2 - offsetAngle1;
 					
-					let xShift = tree.shrubHeight * Math.cos(offsetAngle2);
-					let yShift = tree.shrubHeight * Math.sin(offsetAngle2);
-					if(gameOn){console.log(t + "      " + offsetAngle1 + "          " + xShift)};
+				let xShift = shrubHeight * Math.cos(offsetAngle2);
+				let yShift = shrubHeight * Math.sin(offsetAngle2);
 
-            				const SP1 = [SP0[0] + xShift, SP0[1] - yShift];
-            				const SP2 = [SP3[0] + xShift, SP3[1] - yShift];
+            			const SP1 = [SP0[0] + xShift, SP0[1] - yShift];
+            			const SP2 = [SP3[0] + xShift, SP3[1] - yShift];
 					
-					let treePathPiece = new Path2D();
-					treePathPiece.moveTo(SP0[0], SP0[1]);
-					treePathPiece.bezierCurveTo(SP1[0], SP1[1], SP2[0], SP2[1], SP3[0], SP3[1]);
-					treePathPiece.lineTo(SP3[0], TP0[1]);
-					treePathPiece.lineTo(SP0[0], TP0[1]);
-					treePathPiece.closePath();
-					treePath.addPath(treePathPiece);
+				let treePathPiece = new Path2D();
+				treePathPiece.moveTo(SP0[0], SP0[1]);
+				treePathPiece.bezierCurveTo(SP1[0], SP1[1], SP2[0], SP2[1], SP3[0], SP3[1]);
+				treePathPiece.lineTo(SP3[0], TP0[1]);
+				treePathPiece.lineTo(SP0[0], TP0[1]);
+				treePathPiece.closePath();
+				path.addPath(treePathPiece);
 				}
-				
+			return path;
+		}
+
+		function drawTree(){
+			treeList.forEach(tree => {
+				context.save();
+				context.translate(tree.x, 0);
 				context.strokeStyle = tree.strokeColor;
 				context.lineWidth = 3;
-				context.stroke(treePath);
+				context.stroke(tree.strokePath);
 
-				let rectPath = new Path2D();
-				rectPath.rect(TP0[0] - 5, TP0[1] - 20, tree.radius*2 + 10, canvas.height);
-				treePath.addPath(rectPath);
+				let totalPath = new Path2D(tree.strokePath);
+				totalPath.addPath(tree.fillPath);
 				context.fillStyle = tree.fillColor;
-				context.fill(treePath); 				
+				context.fill(totalPath);
+				context.restore();			
 			});
-			context.restore();
 		}
 
 		function bezierCoordinateFinder(P0, P1, P2, P3, t){
