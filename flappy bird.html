@@ -115,10 +115,9 @@
 			gravity: 0.5,
 			terminalVelocity: 20,
 			//aesthetics
-			wingX: this.x - length/10,
-			wingY: this.y,
-			wingRadius: 20,
-			wingDipMax: 40,
+			wingRadius: 10,
+			wingDipMax: 20,
+			beakScale: 7,
 		};
 	
 		function moveBird(){
@@ -147,9 +146,11 @@
 			//console.log(bird.dy);
 
 			if(bird.y > canvas.height){
-				bird.y = canvas.height - 25;
+				bird.y = canvas.height;
+				bird.dy = 0;
 			} else if(bird.y < 0){
 				bird.y = 10;
+				bird.dy = 0;
 			}
 			bird.y += bird.dy;
 		}
@@ -157,25 +158,41 @@
 		function drawBird(){
 			context.save()
 			context.fillStyle = "yellow";
-			const birdShape = birdPath();
+			const birdShape = birdBodyPath();
 			context.fill(birdShape);
 			
 			context.lineWidth = 3;
 			context.strokeStyle = "orange";
 			context.stroke(birdShape);
-			context.restore();
 
-			/*
-			//Wing
-			const rad = bird.orientation * Math.PI/180;
-			let wingX, wingY, wingLeft, wingRight, wingTop, wingBottom;
-			let loopList = [wingX, wingY, wingLeft, wingRight, wingTop, wingBottom];
-			wingX = bird.x + Math.cos(rad) * (bird.wingX - bird.x) - Math.sin(rad) * (bird.wingY - bird.y);
-			wingY = bird.y + Math.sin(rad) * (bird.wingX - bird.x) + Math.cos(rad) * (bird.wingY - bird.y);
-			*/
+			const wingShape = birdWingPath();
+			context.lineWidth = 1;
+			context.strokeStyle = "black";
+			context.stroke(wingShape);
+			context.fillStyle = "white";
+			context.fill(wingShape);
+
+			const eyeShape = birdEyePath();
+			context.fillStyle = "white";
+			context.fill(eyeShape);
+			context.strokeStyle = "black";
+			context.lineWidth = 1;
+			context.stroke(eyeShape);
+
+			const pupilShape = birdPupilPath();
+			context.fillStyle = "black";
+			context.fill(pupilShape);
+
+			const beakShape = birdBeakPath();
+			context.fillStyle = "orange";
+			context.fill(beakShape);
+			context.lineWidth = 1;
+			context.strokeStyle = "black";
+			context.stroke(beakShape);
+			context.restore();
 		}
 
-		function birdPath(){
+		function birdBodyPath(){
 			const rad = bird.orientation * Math.PI/180;
 			let body = new Path2D();
 			let pointList = [];
@@ -187,19 +204,131 @@
 			let midRight = [bird.x + bird.length/2, bird.y];
 			let lowLeft = [bird.x - bird.length/2, bird.y + bird.height/2];
 			let lowRight = [bird.x + bird.length/2, bird.y + bird.height/2];
+
 			pointList.push(topLeft, topRight, midLeft, midRight, lowLeft, lowRight);
-			
-			for(let i = 0; i < pointList.length; i++){
-				const newX = bird.x + Math.cos(rad) * (pointList[i][0] - bird.x) - Math.sin(rad) * (pointList[i][1] - bird.y);
-				const newY = bird.y + Math.sin(rad) * (pointList[i][0] - bird.x) + Math.cos(rad) * (pointList[i][1] - bird.y);
-				pointList[i] = [newX, newY];
-			}
-			[topLeft, topRight, midLeft, midRight, lowLeft, lowRight] = pointList;
+			rotateBirdPoints(pointList);
 
 			body.moveTo(midLeft[0], midLeft[1]);
 			body.bezierCurveTo(topLeft[0], topLeft[1], topRight[0], topRight[1], midRight[0], midRight[1]);
 			body.bezierCurveTo(lowRight[0], lowRight[1], lowLeft[0], lowLeft[1], midLeft[0], midLeft[1]);
 			return body;
+		}
+
+		function birdWingPath(){
+			const rad = bird.orientation * Math.PI/180;
+			let upperHeight = 3;
+			let lowerHeight = 3;
+			bird.wingX = bird.x - bird.length / 4;
+			bird.wingY = bird.y - 10;
+
+
+			if(bird.dy > 0){
+				upperHeight = bird.wingDipMax * (bird.dy / bird.terminalVelocity);
+			} else if(bird.dy < 0){
+				lowerHeight = bird.wingDipMax * (bird.flapHeight / bird.flapHeightMax);
+			}
+
+			const wingPos = [bird.x + Math.cos(rad) * (bird.wingX - bird.x) - Math.sin(rad) * (bird.wingY - bird.y),
+				     	 bird.y + Math.sin(rad) * (bird.wingX - bird.x) + Math.cos(rad) * (bird.wingY - bird.y)];
+
+			let path = new Path2D();
+			path.ellipse(wingPos[0], wingPos[1], bird.wingRadius, upperHeight, 0, rad, Math.PI, true);
+			path.ellipse(wingPos[0], wingPos[1], bird.wingRadius, lowerHeight, 0, rad + Math.PI, Math.PI * 2, true);
+			
+			return path;
+		}
+
+		function birdBeakPath(){
+			const rad = bird.orientation * Math.PI/180;
+			bird.beakX = bird.x + bird.length/2 - bird.length/3;
+			bird.beakY = bird.y + bird.height / 4 - 5;
+			const beakCoords = [bird.beakX, bird.beakY];
+			let path = new Path2D;
+			let upLeft = [], upRight = [], midLeft = [], midRight = [], midRight2 = [], lowLeft = [], lowRight = [];
+			let topControl = [], lowControl = [], rearControl = [];
+			
+			upLeft = 	[bird.beakX, 
+				  	 bird.beakY - bird.beakScale]
+			upRight = 	[bird.beakX + 3 * bird.beakScale,
+				   	 bird.beakY - bird.beakScale]
+			topControl = 	[bird.beakX + 4 * bird.beakScale,
+					 bird.beakY - bird.beakScale/2]
+			midLeft =	[bird.beakX + 5,
+					 bird.beakY];
+			midRight = 	[bird.beakX + 3 * bird.beakScale,
+				    	 bird.beakY]
+			midRight2 = 	[bird.beakX + 2 * bird.beakScale,
+					 bird.beakY]
+			lowControl =	[bird.beakX + 3 * bird.beakScale,
+					 bird.beakY + bird.beakScale/2]
+			lowLeft =  	[bird.beakX,
+				    	 bird.beakY + bird.beakScale]
+			lowRight = 	[bird.beakX + 2 * bird.beakScale,
+				    	 bird.beakY + bird.beakScale]
+			rearControl =	[bird.beakX - 2 * bird.beakScale,
+					 bird.beakY]
+
+			let pointList = [beakCoords, upLeft, upRight, topControl, midLeft, midRight, midRight2, lowControl, lowLeft, lowRight, rearControl];
+			rotateBirdPoints(pointList);
+
+			path.moveTo(upLeft[0], upLeft[1]);
+			path.lineTo(upRight[0], upRight[1]);
+			path.quadraticCurveTo(topControl[0], topControl[1], midRight[0], midRight[1]);
+			path.lineTo(midLeft[0], midLeft[1]);
+			path.lineTo(midRight2[0], midRight2[1]);
+			path.quadraticCurveTo(lowControl[0], lowControl[1], lowRight[0], lowRight[1]);
+			path.lineTo(lowLeft[0], lowLeft[1]);
+			path.quadraticCurveTo(rearControl[0], rearControl[1], upLeft[0], upLeft[1]);
+			return path;
+			
+		}
+
+		function birdEyePath(){
+			const rad = bird.orientation * Math.PI/180;
+			let path = new Path2D;
+			let bodyTopLeft = [bird.x - bird.length/2, bird.y - bird.height/2];
+			let bodyTopRight = [bird.x + bird.length/2, bird.y - bird.height/2];
+			let bodyMidLeft = [bird.x - bird.length/2, bird.y];
+			let bodyMidRight = [bird.x + bird.length/2, bird.y];
+			let bodyLowLeft = [bird.x - bird.length/2, bird.y + bird.height/2];
+			let bodyLowRight = [bird.x + bird.length/2, bird.y + bird.height/2];
+
+			let eyeTop = 	[bezierCoordinateFinder(bodyMidLeft[0], bodyTopLeft[0], bodyTopRight[0], bodyMidRight[0], 0.75), // 3/4ths
+					 bezierCoordinateFinder(bodyMidLeft[1], bodyTopLeft[1], bodyTopRight[1], bodyMidRight[1], 0.75)];
+
+			let eyeLow = 	[bezierCoordinateFinder(bodyMidLeft[0], bodyLowLeft[0], bodyLowRight[0], bodyMidRight[0], 0.875),// 7/8ths
+					 bezierCoordinateFinder(bodyMidLeft[1], bodyLowLeft[1], bodyLowRight[1], bodyMidRight[1], 0.875)];
+			
+			const distance = Math.sqrt(Math.pow(eyeTop[0] - eyeLow[0], 2) + Math.pow(eyeTop[1] - eyeLow[1], 2));
+			const side = distance / Math.sqrt(2);
+			let midPoint = [(eyeTop[0] + eyeLow[0])/2 - 5, (eyeTop[1] + eyeLow[1])/2 - 5];
+
+			let pointList = [midPoint];
+			rotateBirdPoints(pointList);
+
+			path.ellipse(midPoint[0], midPoint[1], 9, 14, rad - Math.PI/4, 0, 2 * Math.PI);
+			return path;
+		}
+
+		function birdPupilPath(){
+			const rad = bird.orientation * Math.PI/180;
+			const pupilLoc = [bird.x + bird.length/2 - 5,
+					  bird.y - 8];
+			let pointList = [pupilLoc];
+			rotateBirdPoints(pointList);
+			let path = new Path2D;
+			path.ellipse(pupilLoc[0], pupilLoc[1], 4, 6, rad - Math.PI/6, 0, 2 * Math.PI);
+			return path;
+		}
+
+		function rotateBirdPoints(pointList){
+			const rad = bird.orientation * Math.PI/180;
+			for(let i = 0; i < pointList.length; i++){
+				const newX = bird.x + Math.cos(rad) * (pointList[i][0] - bird.x) - Math.sin(rad) * (pointList[i][1] - bird.y);
+				const newY = bird.y + Math.sin(rad) * (pointList[i][0] - bird.x) + Math.cos(rad) * (pointList[i][1] - bird.y);
+				pointList[i][0] = newX;
+				pointList[i][1] = newY;
+			}
 		}
 //PIPES
 		function pipeSpecs(){
@@ -275,7 +404,7 @@
 //COLLISION
 		function collisionCheck(){
 			const pipePoints = tubePointMap();
-			const birdShape = birdPath();
+			const birdShape = birdBodyPath();
 			for(let i = 0; i < pipePoints.length; i++){
 				if(context.isPointInPath(birdShape, pipePoints[i][0], pipePoints[i][1])){
 					return true;
@@ -603,8 +732,6 @@
 			treeList.forEach(tree => {
 				if(tree.x < 0 - tree.radius){
 					tree.visible = false;
-					console.log(tree.x);
-					console.log("treeList length   " + treeList.length);
 				}
 			});
 			treeList = treeList.filter(tree => tree.visible);
